@@ -64,7 +64,7 @@ export default async function MembersPage(props: PageProps<"/members">) {
         </form>
       </header>
       <div className="max-h-[calc(100dvh-13rem)] overflow-auto">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="w-full min-w-[640px] whitespace-nowrap text-sm">
           <thead className="sticky top-0 z-10 bg-panel2 text-left text-xs text-muted shadow-[0_1px_0_var(--line)]">
             <tr>
               {COLS.map((c) => {
