@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { checkLogin, issueToken } from "@/lib/auth";
-import { adminError, attendanceError, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
+import { adminError, attendanceError, getSession, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
 import { DATA_TAG } from "@/lib/queries";
 import { collectData } from "@/lib/somoim/collect";
 import { acquireLock, releaseLock } from "@/lib/store";
@@ -102,6 +102,20 @@ export async function saveMeetup(_prev: ActionResult, formData: FormData): Promi
 export async function runCollect(days: number): Promise<ActionResult> {
   const err = await adminError();
   if (err) return fail(err);
+  return collectNow(days);
+}
+
+/** 페이서용: 당일 벙이 아직 안 들어왔을 때 최소 범위(30일)로 다시 불러오기. 운영진·페이서만 */
+export async function refreshMeetups(): Promise<ActionResult> {
+  const s = await getSession();
+  if (!s) return fail("로그인이 필요해요. 다시 로그인해 주세요.");
+  if (s.role !== "admin" && s.role !== "pacer") return fail("권한이 없어요.");
+  const r = await collectNow(30);
+  // 페이서에게는 회원 수·벙 수 같은 집계를 보여주지 않는다
+  return r.ok ? { ok: true, message: "벙 데이터를 불러왔어요" } : r;
+}
+
+async function collectNow(days: number): Promise<ActionResult> {
   if (!(await acquireLock("collect", 330))) return fail("이미 수집이 진행 중이에요. 잠시 후 다시 시도하세요.");
   try {
     const r = await collectData(days); // 최대 180일로 제한됨
