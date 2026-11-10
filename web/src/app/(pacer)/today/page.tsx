@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import AttendeeEditor from "@/components/AttendeeEditor";
+import RefreshMeetupsButton from "@/components/RefreshMeetupsButton";
 import { Badge } from "@/components/ui";
 import { getData } from "@/lib/queries";
 import { requireSession } from "@/lib/session";
@@ -33,15 +34,19 @@ export default async function TodayPage(props: PageProps<"/today">) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-lg font-semibold">오늘 벙</h1>
-        <p className="mt-0.5 text-xs text-muted">{fmtDay(today)} · {list.length}개</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-semibold">오늘 벙</h1>
+          <p className="mt-0.5 text-xs text-muted">{fmtDay(today)} · {list.length}개</p>
+        </div>
+        {canEdit && list.length > 0 && <RefreshMeetupsButton />}
       </div>
 
       {list.length === 0 ? (
         <div className="rounded-lg border border-line bg-panel px-4 py-12 text-center">
           <p className="text-sm font-medium">오늘 예정된 벙이 없어요</p>
-          <p className="mt-1 text-xs text-muted">벙이 보이지 않으면 운영진에게 데이터 가져오기를 요청해 주세요.</p>
+          <p className="mb-4 mt-1 text-xs text-muted">오늘 올라온 벙이 안 보이면 아래 버튼으로 소모임에서 다시 불러오세요.</p>
+          {canEdit && <RefreshMeetupsButton variant="primary" />}
         </div>
       ) : (
         <ul className="space-y-2">
