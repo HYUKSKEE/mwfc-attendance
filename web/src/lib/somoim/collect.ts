@@ -88,12 +88,16 @@ export async function getMembers(cred: SomoimCred) {
 
 type RawArticle = { id?: string; w_t?: number; cat?: string; at?: string };
 
-/** select_articles 페이징(현재→과거). months=null 이면 전체 기간 */
-export async function getArticles(cred: SomoimCred, months: number | null) {
-  const lowerTs =
-    months === null
-      ? null
-      : Math.floor((Date.now() - months * 30 * 86400_000) / 1000) - OFFSET;
+/** 수집 기간(일): 30~180. 이보다 오래된 벙은 가져오지 않는다 */
+export const MIN_COLLECT_DAYS = 30;
+export const MAX_COLLECT_DAYS = 180;
+const clampDays = (d: number) =>
+  Math.max(MIN_COLLECT_DAYS, Math.min(MAX_COLLECT_DAYS, Math.trunc(d) || MAX_COLLECT_DAYS));
+const lowerBound = (days: number) => Math.floor((Date.now() - days * 86400_000) / 1000) - OFFSET;
+
+/** select_articles 페이징(현재→과거). 최근 days일(30~180)까지만 */
+export async function getArticles(cred: SomoimCred, days: number) {
+  const lowerTs = lowerBound(clampDays(days));
   let cursor = Math.floor((Date.now() + 5 * 60_000) / 1000) - OFFSET;
 
   const articles: RawArticle[] = [];
@@ -146,12 +150,13 @@ export async function fetchEventAttendees(cred: SomoimCred, a: RawArticle) {
 }
 
 /** 수집 실행: 회원 + 벙(아카이브 upsert) 을 저장소에 반영 */
-export async function collectData(months: number | null) {
+export async function collectData(rawDays: number) {
+  const days = clampDays(rawDays);
   const cred = credFromEnv();
   const cfg = getConfig();
 
   const { members, group } = await getMembers(cred);
-  const articles = await getArticles(cred, months);
+  const articles = await getArticles(cred, days);
   const eventArticles = articles.filter(
     (a) => cfg.eventCats === null || (a.cat && cfg.eventCats.has(a.cat)),
   );
@@ -192,14 +197,11 @@ export async function collectData(months: number | null) {
       archive[k] = mt;
     }
   }
-  // 수집 기간(months) 밖의 오래된 벙은 '삭제됨'이 아니므로 live 판정 대상에서 제외
-  const lowerWt =
-    months === null
-      ? null
-      : Math.floor((Date.now() - months * 30 * 86400_000) / 1000) - OFFSET;
+  // 수집 기간 밖의 오래된 벙은 '삭제됨'이 아니므로 live 판정 대상에서 제외
+  const lowerWt = lowerBound(days);
   for (const [k, mt] of Object.entries(archive)) {
     if (freshKeys.has(k)) continue;
-    if (lowerWt !== null && mt.w_t < lowerWt) continue;
+    if (mt.w_t < lowerWt) continue;
     mt.live = false;
   }
   await setJson("meetups_archive", archive);

@@ -50,12 +50,14 @@ export function verifyToken(token: string | null | undefined): Role | null {
   return role;
 }
 
-/** 요청에서 역할 확인: x-att-token 헤더 → ?token= → (POST) body.token */
+/** 요청에서 역할 확인(route handler 용): 쿠키 → x-att-token 헤더 → ?token= → body.token */
 export function roleOf(req: Request, bodyToken?: string): Role | null {
   if (lockState() === "open") return "admin";
   if (lockState() === "misconfigured") return null;
   const url = new URL(req.url);
+  const cookie = /(?:^|;\s*)att_token=([^;]+)/.exec(req.headers.get("cookie") ?? "")?.[1];
   const token =
+    (cookie && decodeURIComponent(cookie)) ||
     req.headers.get("x-att-token") ||
     url.searchParams.get("token") ||
     bodyToken ||

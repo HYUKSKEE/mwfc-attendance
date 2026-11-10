@@ -13,6 +13,8 @@ export type Member = {
   history?: HistoryItem[];
   attend_count?: number;
   last_attended?: string;
+  /** 지각 횟수 (취소된 벙 제외) */
+  late_count?: number;
 };
 
 export type HistoryItem = {
@@ -37,7 +39,14 @@ export type Meetup = {
   source?: string;
   manual?: boolean;
   cancelled?: boolean;
+  /** 이 벙에서 지각한 사람 (attendee_ids 의 부분집합) */
+  late_ids?: string[];
+  /** 캘린더 표시일 YYYY-MM-DD (수정값 > 벙 날짜 > 작성일) */
+  day?: string;
+  edited?: boolean;
 };
+
+export type MeetupEdit = { title?: string; date?: string; place?: string };
 
 export type Group = {
   name: string;

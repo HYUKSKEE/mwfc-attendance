@@ -9,7 +9,6 @@ function list(v: string | undefined, def: string[]): string[] {
 
 export function getConfig() {
   const e = process.env;
-  const months = (e.AUTO_COLLECT_MONTHS ?? "3").trim().toLowerCase();
   return {
     webPassword: (e.WEB_PASSWORD ?? "").trim(),
     adminPassword: (e.ADMIN_PASSWORD ?? "").trim(),
@@ -20,7 +19,8 @@ export function getConfig() {
       ? null
       : new Set(list(e.EVENT_CATS, ["E"])),
     introMaxCheck: Number(e.INTRO_MAX_CHECK ?? 10) || 10,
-    autoCollectMonths: months === "all" ? null : Number(months) || 3,
+    // 자동수집 기간(일): 30~180
+    autoCollectDays: Math.max(30, Math.min(180, Number(e.AUTO_COLLECT_DAYS ?? 180) || 180)),
     ai: {
       provider: (e.AI_PROVIDER ?? "").trim().toLowerCase(),
       geminiKey: (e.GEMINI_API_KEY ?? "").trim(),

@@ -132,3 +132,109 @@ export async function buildXlsx(opts: { tags: boolean; memo: boolean; risk: numb
   const buf = Buffer.from(await wb.xlsx.writeBuffer());
   return { buf, count: members.length };
 }
+
+// ---------- 출석표 (회원 × 벙 날짜 매트릭스) ----------
+const kstToday = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+
+function addDays(day: string, n: number) {
+  const d = new Date(day + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** 최근 N일(오늘 포함) 벙을 열로, 현재 회원을 행으로 하는 출석표. 취소·삭제된 벙은 제외 */
+export async function buildAttendanceSheet(opts: { days: number; includeAbsent: boolean }) {
+  const days = Math.max(1, Math.min(180, Math.trunc(opts.days) || 30));
+  const to = kstToday();
+  const from = addDays(to, -(days - 1));
+
+  const data = await mergedData();
+  const meetups = data.meetups
+    .filter((m) => !m.cancelled && m.day && m.day >= from && m.day <= to)
+    .sort((a, b) => (a.day! < b.day! ? -1 : a.day! > b.day! ? 1 : a.w_t - b.w_t));
+
+  const sets = meetups.map((m) => new Set(m.attendee_ids));
+  const lates = meetups.map((m) => new Set(m.late_ids ?? []));
+  const rows = data.members
+    .filter((m) => !m.banned)
+    .map((m) => ({
+      m,
+      n: sets.filter((s) => s.has(m.mid)).length,
+      late: lates.filter((s, i) => s.has(m.mid) && sets[i].has(m.mid)).length,
+    }))
+    .filter((r) => opts.includeAbsent || r.n > 0)
+    .sort((a, b) => b.n - a.n || a.m.name.localeCompare(b.m.name, "ko"));
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("출석표", { views: [{ state: "frozen", xSplit: 1, ySplit: 1 }] });
+  const NAME_W = 16;
+  ws.columns = [
+    { width: NAME_W },
+    ...meetups.map(() => ({ width: 5.5 })),
+    { width: 7 },
+    { width: 7 },
+  ];
+
+  const border: Partial<ExcelJS.Borders> = Object.fromEntries(
+    ["left", "right", "top", "bottom"].map((s) => [s, { style: "thin", color: { argb: "FFD8DEE9" } }]),
+  ) as Partial<ExcelJS.Borders>;
+  const dark = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2E3440" } } as const;
+
+  // 헤더: 날짜(MM/DD) + 제목을 세로로
+  const head = ws.addRow([
+    `${from} ~ ${to}\nO 참석 · 지 지각`,
+    ...meetups.map((m) => `${m.day!.slice(5).replace("-", "/")}  ${m.title ?? ""}`.trim()),
+    "참가",
+    "지각",
+  ]);
+  head.height = 120;
+  head.eachCell((c, n) => {
+    c.fill = dark;
+    c.font = { color: { argb: "FFFFFFFF" }, bold: true, size: n === 1 ? 10 : 9 };
+    c.border = border;
+    c.alignment =
+      n === 1 || n >= meetups.length + 2
+        ? { horizontal: "center", vertical: "middle", wrapText: true }
+        : { textRotation: 90, horizontal: "center", vertical: "bottom", wrapText: false };
+  });
+
+  for (const { m, n, late } of rows) {
+    const row = ws.addRow([
+      m.name,
+      ...sets.map((s, i) => (s.has(m.mid) ? (lates[i].has(m.mid) ? "지" : "O") : "")),
+      n,
+      late || "",
+    ]);
+    row.eachCell({ includeEmpty: true }, (c, i) => {
+      c.border = border;
+      c.alignment = { horizontal: i === 1 ? "left" : "center", vertical: "middle" };
+      if (c.value === "O") {
+        c.font = { bold: true, color: { argb: "FF2F7D4F" } };
+        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE3F3E8" } };
+      } else if (c.value === "지" && i > 1 && i <= meetups.length + 1) {
+        // 지각: 참석은 인정하되 노란색으로 구분
+        c.font = { bold: true, color: { argb: "FFB45309" } };
+        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF1CC" } };
+      }
+    });
+  }
+
+  // 합계 행: 벙별 참석 인원
+  const totals = [
+    ["참석 인원", ...sets.map((s) => rows.filter((r) => s.has(r.m.mid)).length), "", ""],
+    ["지각 인원", ...lates.map((l, i) => rows.filter((r) => l.has(r.m.mid) && sets[i].has(r.m.mid)).length), "", ""],
+  ];
+  for (const t of totals) {
+    const total = ws.addRow(t);
+    total.eachCell({ includeEmpty: true }, (c, i) => {
+      c.font = { bold: true };
+      c.border = border;
+      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEDEFF4" } };
+      c.alignment = { horizontal: i === 1 ? "left" : "center", vertical: "middle" };
+    });
+  }
+
+  ws.pageSetup = { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+  const buf = Buffer.from(await wb.xlsx.writeBuffer());
+  return { buf, from, to, meetups: meetups.length, members: rows.length };
+}

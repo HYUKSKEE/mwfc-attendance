@@ -1,5 +1,7 @@
+import { revalidateTag } from "next/cache";
 import { connection } from "next/server";
 import { getConfig } from "@/lib/config";
+import { DATA_TAG } from "@/lib/queries";
 import { collectData } from "@/lib/somoim/collect";
 import { acquireLock, releaseLock } from "@/lib/store";
 
@@ -16,7 +18,8 @@ export async function GET(req: Request) {
     return Response.json({ ok: false, error: "already running" }, { status: 409 });
   }
   try {
-    const r = await collectData(getConfig().autoCollectMonths);
+    const r = await collectData(getConfig().autoCollectDays);
+    revalidateTag(DATA_TAG, { expire: 0 }); // 화면 캐시 갱신
     return Response.json({ ok: true, ...r });
   } catch (e) {
     return Response.json({ ok: false, error: String(e instanceof Error ? e.message : e) }, { status: 500 });
