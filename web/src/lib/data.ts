@@ -158,6 +158,9 @@ export async function loadRawMeetups(): Promise<Meetup[]> {
 /** 자동수집 + 수동 벙 + 참석자 보정 + 취소를 합치고 회원 지표를 재계산 */
 export async function mergedData(): Promise<MergedData> {
   const base = await getJson<AttendanceBase>("attendance_data", EMPTY_BASE);
+  // 계정 주인은 이미 저장된 데이터도 현재 설정 이름으로 표시(재수집 불필요)
+  const ownerName = getConfig().ownerName;
+  base.members = base.members.map((m) => (m.is_owner ? { ...m, name: ownerName } : m));
   const [rawMeetupsAll, ov, manual, cancelledArr, edits, deleted, lateMap, absentMap] = await Promise.all([
     loadRawMeetups(),
     loadOverrides(),

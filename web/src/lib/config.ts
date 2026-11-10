@@ -12,7 +12,7 @@ export function getConfig() {
   return {
     webPassword: (e.WEB_PASSWORD ?? "").trim(),
     adminPassword: (e.ADMIN_PASSWORD ?? "").trim(),
-    ownerName: e.OWNER_NAME ?? "",
+    ownerName: e.OWNER_NAME || "kkjjhh(계정주)",
     ownerJoined: Number(e.OWNER_JOINED ?? 0) || 0,
     excludeKeywords: list(e.EXCLUDE_KEYWORDS, ["풋살"]),
     eventCats: (e.EVENT_CATS ?? "E").trim().toLowerCase() === "all"

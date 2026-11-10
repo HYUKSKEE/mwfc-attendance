@@ -57,7 +57,7 @@ export async function getMembers(cred: SomoimCred) {
   if (!members[cred.MY_WID]) {
     members[cred.MY_WID] = {
       mid: cred.MY_WID,
-      name: cfg.ownerName || "나(계정주인)",
+      name: cfg.ownerName,
       joined: cfg.ownerJoined,
       joined_date: cfg.ownerJoined ? fmt(cfg.ownerJoined) : "—",
       last_visit: 0,
