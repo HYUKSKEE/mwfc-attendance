@@ -153,16 +153,22 @@ export async function buildAttendanceSheet(opts: { days: number; includeAbsent: 
     .filter((m) => !m.cancelled && m.day && m.day >= from && m.day <= to)
     .sort((a, b) => (a.day! < b.day! ? -1 : a.day! > b.day! ? 1 : a.w_t - b.w_t));
 
-  const sets = meetups.map((m) => new Set(m.attendee_ids));
-  const lates = meetups.map((m) => new Set(m.late_ids ?? []));
+  // 참석 = 신청자 중 직전취소·무단불참이 아닌 사람
+  const cancels = meetups.map((m) => new Set(m.cancel_ids ?? []));
+  const noshows = meetups.map((m) => new Set(m.noshow_ids ?? []));
+  const sets = meetups.map((m, i) => new Set(m.attendee_ids.filter((id) => !cancels[i].has(id) && !noshows[i].has(id))));
+  const lates = meetups.map((m, i) => new Set((m.late_ids ?? []).filter((id) => sets[i].has(id))));
+  const cnt = (list: Set<string>[], mid: string) => list.filter((s) => s.has(mid)).length;
   const rows = data.members
     .filter((m) => !m.banned)
     .map((m) => ({
       m,
-      n: sets.filter((s) => s.has(m.mid)).length,
-      late: lates.filter((s, i) => s.has(m.mid) && sets[i].has(m.mid)).length,
+      n: cnt(sets, m.mid),
+      late: cnt(lates, m.mid),
+      cancel: cnt(cancels, m.mid),
+      noshow: cnt(noshows, m.mid),
     }))
-    .filter((r) => opts.includeAbsent || r.n > 0)
+    .filter((r) => opts.includeAbsent || r.n + r.cancel + r.noshow > 0)
     .sort((a, b) => b.n - a.n || a.m.name.localeCompare(b.m.name, "ko"));
 
   const wb = new ExcelJS.Workbook();
@@ -173,6 +179,8 @@ export async function buildAttendanceSheet(opts: { days: number; includeAbsent: 
     ...meetups.map(() => ({ width: 5.5 })),
     { width: 7 },
     { width: 7 },
+    { width: 8 },
+    { width: 8 },
   ];
 
   const border: Partial<ExcelJS.Borders> = Object.fromEntries(
@@ -182,12 +190,14 @@ export async function buildAttendanceSheet(opts: { days: number; includeAbsent: 
 
   // 헤더: 날짜(MM/DD) + 제목을 세로로
   const head = ws.addRow([
-    `${from} ~ ${to}\nO 참석 · 지 지각`,
+    `${from} ~ ${to}\nO 참석 · 지 지각\n취 직전취소 · 불 무단불참`,
     ...meetups.map((m) => `${m.day!.slice(5).replace("-", "/")}  ${m.title ?? ""}`.trim()),
     "참가",
     "지각",
+    "직전취소",
+    "무단불참",
   ]);
-  head.height = 120;
+  head.height = 135;
   head.eachCell((c, n) => {
     c.fill = dark;
     c.font = { color: { argb: "FFFFFFFF" }, bold: true, size: n === 1 ? 10 : 9 };
@@ -198,12 +208,16 @@ export async function buildAttendanceSheet(opts: { days: number; includeAbsent: 
         : { textRotation: 90, horizontal: "center", vertical: "bottom", wrapText: false };
   });
 
-  for (const { m, n, late } of rows) {
+  for (const { m, n, late, cancel, noshow } of rows) {
     const row = ws.addRow([
       m.name,
-      ...sets.map((s, i) => (s.has(m.mid) ? (lates[i].has(m.mid) ? "지" : "O") : "")),
+      ...sets.map((s, i) =>
+        s.has(m.mid) ? (lates[i].has(m.mid) ? "지" : "O")
+          : cancels[i].has(m.mid) ? "취" : noshows[i].has(m.mid) ? "불" : ""),
       n,
       late || "",
+      cancel || "",
+      noshow || "",
     ]);
     row.eachCell({ includeEmpty: true }, (c, i) => {
       c.border = border;
@@ -211,18 +225,24 @@ export async function buildAttendanceSheet(opts: { days: number; includeAbsent: 
       if (c.value === "O") {
         c.font = { bold: true, color: { argb: "FF2F7D4F" } };
         c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE3F3E8" } };
-      } else if (c.value === "지" && i > 1 && i <= meetups.length + 1) {
-        // 지각: 참석은 인정하되 노란색으로 구분
-        c.font = { bold: true, color: { argb: "FFB45309" } };
-        c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF1CC" } };
+      } else if (i > 1 && i <= meetups.length + 1) {
+        const mark = (fg: string, bg: string) => {
+          c.font = { bold: true, color: { argb: fg } };
+          c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
+        };
+        if (c.value === "지") mark("FFB45309", "FFFFF1CC"); // 지각: 참석 인정, 노랑
+        else if (c.value === "취") mark("FF1D4ED8", "FFDBE7FE"); // 직전취소: 미인정, 파랑
+        else if (c.value === "불") mark("FFB91C1C", "FFFDE2E2"); // 무단불참: 미인정, 빨강
       }
     });
   }
 
   // 합계 행: 벙별 참석 인원
   const totals = [
-    ["참석 인원", ...sets.map((s) => rows.filter((r) => s.has(r.m.mid)).length), "", ""],
-    ["지각 인원", ...lates.map((l, i) => rows.filter((r) => l.has(r.m.mid) && sets[i].has(r.m.mid)).length), "", ""],
+    ["참석 인원", ...sets.map((s) => rows.filter((r) => s.has(r.m.mid)).length), "", "", "", ""],
+    ["지각 인원", ...lates.map((l) => rows.filter((r) => l.has(r.m.mid)).length), "", "", "", ""],
+    ["직전취소 인원", ...cancels.map((l) => rows.filter((r) => l.has(r.m.mid)).length), "", "", "", ""],
+    ["무단불참 인원", ...noshows.map((l) => rows.filter((r) => l.has(r.m.mid)).length), "", "", "", ""],
   ];
   for (const t of totals) {
     const total = ws.addRow(t);

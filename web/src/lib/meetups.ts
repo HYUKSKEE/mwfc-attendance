@@ -1,18 +1,26 @@
 import {
-  dateToWt, loadLate, loadManual, loadRawMeetups, markDeleted, saveEdit, saveLate, saveManual, saveOverride, setCancelled,
+  dateToWt, loadAbsent, loadLate, loadManual, loadRawMeetups, markDeleted, saveAbsent, saveEdit, saveLate, saveManual, saveOverride, setCancelled,
 } from "./data";
-import type { Meetup } from "./types";
+import type { Meetup, Status } from "./types";
 
 // 벙 쓰기 로직 (서버 액션에서 사용). 소모임 원본은 건드리지 않고 '차이'만 저장한다.
 
 /**
- * 최종 참석자 + 지각자 목록으로 맞춤. 수동 벙은 직접 수정, 수집 벙은 add/remove 차이 저장.
- * 지각자는 항상 참석자의 부분집합으로 정리한다(빠진 사람은 지각도 해제).
+ * 최종 신청자 + 상태(지각/직전취소/무단불참)로 맞춤. 수동 벙은 직접 수정, 수집 벙은 add/remove 차이 저장.
+ * 상태는 신청자에게만 붙고, 한 사람당 하나(없으면 정상 참석). 빠진 사람의 상태는 함께 정리한다.
  */
-export async function setAttendance(wt: string, ids: string[], lateIds: string[]) {
+export async function setAttendance(wt: string, ids: string[], status: Record<string, Status>) {
   await setAttendeeIds(wt, ids);
   const set = new Set(ids);
-  await saveLate(wt, lateIds.filter((i) => set.has(i)));
+  const late: string[] = [];
+  const absent: Record<string, "cancel" | "noshow"> = {};
+  for (const [id, st] of Object.entries(status)) {
+    if (!set.has(id)) continue;
+    if (st === "late") late.push(id);
+    else if (st === "cancel" || st === "noshow") absent[id] = st;
+  }
+  await saveLate(wt, late);
+  await saveAbsent(wt, absent);
 }
 
 async function setAttendeeIds(wt: string, ids: string[]) {
@@ -39,6 +47,7 @@ export const cancelMeetup = (wt: string, cancelled: boolean) => setCancelled(wt,
 /** 수동 벙은 완전 삭제, 수집 벙은 숨김(재수집해도 안 돌아옴) */
 export async function deleteMeetup(wt: string) {
   if ((await loadLate())[wt]) await saveLate(wt, []);
+  if ((await loadAbsent())[wt]) await saveAbsent(wt, {});
   const manual = await loadManual();
   if (manual.some((m) => String(m.w_t) === wt)) {
     await saveManual(manual.filter((m) => String(m.w_t) !== wt));
