@@ -24,7 +24,7 @@ npm run dev   # http://localhost:3000
 | `src/app/api/` | 엑셀 다운로드, 크론 수집 (그 외 `notes`/`ai`/`place_buckets`/`member_intro` 는 이전 기능용 API 로 보존) |
 
 ## 설정 / 배포
-- 환경변수는 `.env.example` 참고. 배포 시 `ADMIN_PASSWORD` 또는 `WEB_PASSWORD` 필수(없으면 전부 차단)
+- 환경변수는 `.env.example` 참고. 배포 시 `ADMIN_PASSWORD`(운영진) · `PACER_PASSWORD`(페이서, 당일 벙 출석만) · `WEB_PASSWORD`(보기 전용) 중 하나 이상 필수(없으면 전부 차단)
 - 저장소: 배포는 Upstash Redis(`KV_REST_API_URL/TOKEN`), 로컬은 `.data/*.json`
 - 로그인은 httpOnly 쿠키(서명 토큰, 30일). 관리자 비번 = 수정 가능, 일반 비번 = 보기 전용
 - 자동수집: `vercel.json` 크론 → `/api/cron/collect` (`CRON_SECRET` 필요)

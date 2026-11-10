@@ -12,6 +12,7 @@ export function getConfig() {
   return {
     webPassword: (e.WEB_PASSWORD ?? "").trim(),
     adminPassword: (e.ADMIN_PASSWORD ?? "").trim(),
+    pacerPassword: (e.PACER_PASSWORD ?? "").trim(),
     ownerName: e.OWNER_NAME || "kkjjhh(계정주)",
     ownerJoined: Number(e.OWNER_JOINED ?? 0) || 0,
     excludeKeywords: list(e.EXCLUDE_KEYWORDS, ["풋살"]),

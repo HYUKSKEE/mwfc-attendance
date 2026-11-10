@@ -6,10 +6,12 @@ export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   await connection();
-  if (!roleOf(req)) {
+  const role = roleOf(req);
+  if (!role) {
     // 인증 만료 → 비밀번호 화면으로
     return Response.redirect(new URL("/login", req.url), 302);
   }
+  if (role === "pacer") return Response.json({ ok: false, error: "권한이 없어요" }, { status: 403 });
   const q = req.nextUrl.searchParams;
   const ymd = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10).replace(/-/g, "");
   const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";

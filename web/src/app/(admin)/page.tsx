@@ -4,7 +4,7 @@ import MeetupFormDialog from "@/components/MeetupFormDialog";
 import MeetupPanel from "@/components/MeetupPanel";
 import { ModalButton } from "@/components/HeaderActions";
 import { getData } from "@/lib/queries";
-import { requireSession } from "@/lib/session";
+import { requireStaff } from "@/lib/session";
 import { KST_TODAY, calHref } from "@/lib/url";
 import Link from "next/link";
 
@@ -12,7 +12,7 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 export default async function CalendarPage(props: PageProps<"/">) {
   await connection(); // "오늘" 날짜가 요청마다 다르므로 요청 시점에 렌더
-  const { role } = await requireSession();
+  const { role } = await requireStaff();
   const sp = await props.searchParams;
   const data = await getData();
   const canEdit = role === "admin";

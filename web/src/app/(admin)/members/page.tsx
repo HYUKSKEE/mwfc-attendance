@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon, inputCls } from "@/components/ui";
 import type { Member } from "@/lib/types";
 import { getData } from "@/lib/queries";
-import { requireSession } from "@/lib/session";
+import { requireStaff } from "@/lib/session";
 
 export const metadata = { title: "회원" };
 
@@ -29,7 +29,7 @@ function sortHref(q: string, key: string, cur: string, dir: string) {
 }
 
 export default async function MembersPage(props: PageProps<"/members">) {
-  await requireSession();
+  await requireStaff();
   const sp = await props.searchParams;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q ?? "").trim();
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";

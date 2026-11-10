@@ -2,7 +2,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { getConfig } from "./config";
 
 // 서버리스라 메모리 토큰을 못 쓰므로 HMAC 서명 토큰(role.만료.서명)을 쓴다.
-export type Role = "admin" | "user";
+// admin = 운영진(전체 권한), pacer = 페이서(당일 벙 출석 체크만), user = 보기 전용
+export type Role = "admin" | "pacer" | "user";
 const TTL_SEC = 60 * 60 * 24 * 30;
 
 function secret() {
@@ -20,7 +21,7 @@ function sign(payload: string) {
 /** 비밀번호가 하나도 없을 때: 로컬은 잠금 없이 관리자, 배포 환경은 전부 차단. */
 export function lockState(): "open" | "locked" | "misconfigured" {
   const c = getConfig();
-  if (c.adminPassword || c.webPassword) return "locked";
+  if (c.adminPassword || c.webPassword || c.pacerPassword) return "locked";
   return process.env.VERCEL ? "misconfigured" : "open";
 }
 
@@ -28,6 +29,7 @@ export function checkLogin(pw: string): Role | null {
   const c = getConfig();
   if (lockState() === "open") return "admin";
   if (c.adminPassword && pw === c.adminPassword) return "admin";
+  if (c.pacerPassword && pw === c.pacerPassword) return "pacer";
   if (c.webPassword && pw === c.webPassword) return "user";
   return null;
 }
@@ -41,7 +43,7 @@ export function issueToken(role: Role): string {
 export function verifyToken(token: string | null | undefined): Role | null {
   if (!token) return null;
   const [role, exp, sig] = token.split(".");
-  if ((role !== "admin" && role !== "user") || !exp || !sig) return null;
+  if ((role !== "admin" && role !== "pacer" && role !== "user") || !exp || !sig) return null;
   if (Number(exp) < Date.now() / 1000) return null;
   const expect = sign(`${role}.${exp}`);
   const a = Buffer.from(sig);
@@ -68,6 +70,10 @@ export function roleOf(req: Request, bodyToken?: string): Role | null {
 export function deny(role: Role | null, need: Role = "user") {
   if (!role) {
     return Response.json({ ok: false, error: "인증 필요" }, { status: 403 });
+  }
+  // 페이서는 보조 API(메모·AI·소개 등) 전부 사용 불가. 출석 체크는 서버 액션으로만 한다.
+  if (role === "pacer") {
+    return Response.json({ ok: false, error: "권한이 없어요" }, { status: 403 });
   }
   if (need === "admin" && role !== "admin") {
     return Response.json({ ok: false, error: "관리자만 가능" }, { status: 403 });
