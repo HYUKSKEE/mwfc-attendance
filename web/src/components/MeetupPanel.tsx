@@ -1,4 +1,4 @@
-import type { Meetup, Member } from "@/lib/types";
+import type { Meetup, Member, Status } from "@/lib/types";
 import { calHref, fmtDay } from "@/lib/url";
 import AttendeeEditor from "./AttendeeEditor";
 import PanelActions from "./PanelActions";
@@ -9,6 +9,10 @@ import Link from "next/link";
 export default function MeetupPanel({
   meetup, members, canEdit, month,
 }: { meetup: Meetup; members: Member[]; canEdit: boolean; month: string }) {
+  const status: Record<string, Status> = {};
+  for (const i of meetup.late_ids ?? []) status[i] = "late";
+  for (const i of meetup.cancel_ids ?? []) status[i] = "cancel";
+  for (const i of meetup.noshow_ids ?? []) status[i] = "noshow";
   const people = members.filter((m) => !m.banned).map((m) => ({ id: m.mid, name: m.name }));
 
   return (
@@ -37,7 +41,7 @@ export default function MeetupPanel({
       </header>
 
       {/* key: 다른 벙을 고르면 편집기 상태(검색어 등) 초기화 */}
-      <AttendeeEditor key={meetup.w_t} wt={meetup.w_t} attendeeIds={meetup.attendee_ids} lateIds={meetup.late_ids ?? []}
+      <AttendeeEditor key={meetup.w_t} wt={meetup.w_t} attendeeIds={meetup.attendee_ids} status={status}
         members={people} canEdit={canEdit} />
 
       {canEdit && <PanelActions wt={meetup.w_t} month={month} cancelled={!!meetup.cancelled} />}

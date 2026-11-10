@@ -9,6 +9,7 @@ import { DATA_TAG } from "@/lib/queries";
 import { collectData } from "@/lib/somoim/collect";
 import { acquireLock, releaseLock } from "@/lib/store";
 import { addMeetup, cancelMeetup, deleteMeetup, editMeetup, setAttendance } from "@/lib/meetups";
+import type { Status } from "@/lib/types";
 import { calHref } from "@/lib/url";
 
 export type ActionResult = { ok: boolean; error?: string; message?: string };
@@ -35,11 +36,11 @@ export async function logout() {
 }
 
 // ---------- 벙 / 참석자 ----------
-export async function setAttendees(wt: number, ids: string[], lateIds: string[]): Promise<ActionResult> {
+export async function setAttendees(wt: number, ids: string[], status: Record<string, Status>): Promise<ActionResult> {
   const err = await adminError();
   if (err) return fail(err);
   try {
-    await setAttendance(String(wt), ids, lateIds);
+    await setAttendance(String(wt), ids, status);
     updateTag(DATA_TAG);
     return { ok: true };
   } catch (e) {

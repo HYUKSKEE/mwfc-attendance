@@ -101,6 +101,18 @@ export async function saveLate(wt: string, ids: string[]) {
   await setJson("meetup_late", all);
 }
 
+// ---------- 직전 취소 / 무단 불참 (벙별 · 신청자별) ----------
+// 신청(attendee_ids)은 그대로 두고 '출석 미인정' 표시만 따로 저장한다.
+export type Absence = "cancel" | "noshow";
+export const loadAbsent = () => getJson<Record<string, Record<string, Absence>>>("meetup_absent", {});
+
+export async function saveAbsent(wt: string, map: Record<string, Absence>) {
+  const all = await loadAbsent();
+  if (Object.keys(map).length) all[wt] = map;
+  else delete all[wt];
+  await setJson("meetup_absent", all);
+}
+
 // ---------- 벙 수정 / 삭제 ----------
 // 소모임에서 받아온 벙은 원본을 건드리지 않고 '수정값'과 '삭제 표시'만 따로 저장한다.
 // (재수집해도 유지되도록)
@@ -146,7 +158,7 @@ export async function loadRawMeetups(): Promise<Meetup[]> {
 /** 자동수집 + 수동 벙 + 참석자 보정 + 취소를 합치고 회원 지표를 재계산 */
 export async function mergedData(): Promise<MergedData> {
   const base = await getJson<AttendanceBase>("attendance_data", EMPTY_BASE);
-  const [rawMeetupsAll, ov, manual, cancelledArr, edits, deleted, lateMap] = await Promise.all([
+  const [rawMeetupsAll, ov, manual, cancelledArr, edits, deleted, lateMap, absentMap] = await Promise.all([
     loadRawMeetups(),
     loadOverrides(),
     loadManual(),
@@ -154,6 +166,7 @@ export async function mergedData(): Promise<MergedData> {
     loadEdits(),
     loadDeleted(),
     loadLate(),
+    loadAbsent(),
   ]);
   const rawMeetups = rawMeetupsAll.filter((m) => !deleted.has(String(m.w_t)));
   const cancelled = new Set(cancelledArr.map(String));
@@ -181,9 +194,15 @@ export async function mergedData(): Promise<MergedData> {
     }
     mt.attendee_ids = ids;
     mt.attendee_names = ids.map((i) => byMid.get(i)?.name ?? `(미확인:${i.slice(0, 6)})`);
-    mt.count = ids.length;
     mt.cancelled = cancelled.has(wt); // 취소된 벙은 출석 미인정
-    mt.late_ids = (lateMap[wt] ?? []).filter((i) => ids.includes(i)); // 참석자 중에서만 지각 인정
+    // 직전 취소 / 무단 불참: 신청자 중에서만 인정, 출석(참가)에서는 제외
+    const ab = Object.entries(absentMap[wt] ?? {}).filter(([i]) => ids.includes(i));
+    mt.cancel_ids = ab.filter(([, v]) => v === "cancel").map(([i]) => i);
+    mt.noshow_ids = ab.filter(([, v]) => v === "noshow").map(([i]) => i);
+    const absent = new Set(ab.map(([i]) => i));
+    mt.count = ids.length - absent.size;
+    // 지각은 실제 출석한 사람 중에서만
+    mt.late_ids = (lateMap[wt] ?? []).filter((i) => ids.includes(i) && !absent.has(i));
 
     const ed = edits[wt];
     if (ed) {
@@ -198,16 +217,20 @@ export async function mergedData(): Promise<MergedData> {
   const members = base.members.map((m) => {
     const hist = [];
     let late = 0;
+    let cancel = 0;
+    let noshow = 0;
     let lastWt = 0;
     let lastDs = "";
     for (const mt of meetups) {
       if (mt.cancelled || !mt.attendee_ids.includes(m.mid)) continue;
+      if (mt.cancel_ids?.includes(m.mid)) { cancel++; continue; }
+      if (mt.noshow_ids?.includes(m.mid)) { noshow++; continue; }
       hist.push({ title: mt.title, date: mt.date_str, place: mt.place, w_t: mt.w_t ?? 0 });
       if (mt.late_ids?.includes(m.mid)) late++;
       if ((mt.w_t ?? 0) > lastWt) { lastWt = mt.w_t; lastDs = mt.date_str; }
     }
     hist.sort((a, b) => b.w_t - a.w_t);
-    return { ...m, history: hist, attend_count: hist.length, late_count: late, last_attended: lastWt ? lastDs : "기록없음" };
+    return { ...m, history: hist, attend_count: hist.length, late_count: late, cancel_count: cancel, noshow_count: noshow, last_attended: lastWt ? lastDs : "기록없음" };
   });
 
   return { ...base, members, meetups };
