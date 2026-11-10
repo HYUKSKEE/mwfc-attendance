@@ -153,7 +153,7 @@ export async function buildAttendanceSheet(opts: { days: number; includeAbsent: 
     .filter((m) => !m.cancelled && m.day && m.day >= from && m.day <= to)
     .sort((a, b) => (a.day! < b.day! ? -1 : a.day! > b.day! ? 1 : a.w_t - b.w_t));
 
-  // 참석 = 신청자 중 직전취소·무단불참이 아닌 사람
+  // 참석 = 신청자 중 당일취소·무단불참이 아닌 사람
   const cancels = meetups.map((m) => new Set(m.cancel_ids ?? []));
   const noshows = meetups.map((m) => new Set(m.noshow_ids ?? []));
   const sets = meetups.map((m, i) => new Set(m.attendee_ids.filter((id) => !cancels[i].has(id) && !noshows[i].has(id))));
@@ -190,11 +190,11 @@ export async function buildAttendanceSheet(opts: { days: number; includeAbsent: 
 
   // 헤더: 날짜(MM/DD) + 제목을 세로로
   const head = ws.addRow([
-    `${from} ~ ${to}\nO 참석 · 지 지각\n취 직전취소 · 불 무단불참`,
+    `${from} ~ ${to}\nO 참석 · 지 지각\n취 당일취소 · 불 무단불참`,
     ...meetups.map((m) => `${m.day!.slice(5).replace("-", "/")}  ${m.title ?? ""}`.trim()),
     "참가",
     "지각",
-    "직전취소",
+    "당일취소",
     "무단불참",
   ]);
   head.height = 135;
@@ -231,7 +231,7 @@ export async function buildAttendanceSheet(opts: { days: number; includeAbsent: 
           c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bg } };
         };
         if (c.value === "지") mark("FFB45309", "FFFFF1CC"); // 지각: 참석 인정, 노랑
-        else if (c.value === "취") mark("FF1D4ED8", "FFDBE7FE"); // 직전취소: 미인정, 파랑
+        else if (c.value === "취") mark("FF1D4ED8", "FFDBE7FE"); // 당일취소: 미인정, 파랑
         else if (c.value === "불") mark("FFB91C1C", "FFFDE2E2"); // 무단불참: 미인정, 빨강
       }
     });
@@ -241,7 +241,7 @@ export async function buildAttendanceSheet(opts: { days: number; includeAbsent: 
   const totals = [
     ["참석 인원", ...sets.map((s) => rows.filter((r) => s.has(r.m.mid)).length), "", "", "", ""],
     ["지각 인원", ...lates.map((l) => rows.filter((r) => l.has(r.m.mid)).length), "", "", "", ""],
-    ["직전취소 인원", ...cancels.map((l) => rows.filter((r) => l.has(r.m.mid)).length), "", "", "", ""],
+    ["당일취소 인원", ...cancels.map((l) => rows.filter((r) => l.has(r.m.mid)).length), "", "", "", ""],
     ["무단불참 인원", ...noshows.map((l) => rows.filter((r) => l.has(r.m.mid)).length), "", "", "", ""],
   ];
   for (const t of totals) {

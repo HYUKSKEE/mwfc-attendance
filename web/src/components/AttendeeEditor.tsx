@@ -16,7 +16,7 @@ type State = { ids: string[]; st: Record<string, Status> };
 /** 신청자 한 명에게 붙일 수 있는 상태. 한 번에 하나만(다시 누르면 해제) */
 const STATUSES: { key: Status; label: string; hint: string; on: string; hover: string }[] = [
   { key: "late", label: "지각", hint: "지각 (출석 인정)", on: "bg-warn-soft text-warn", hover: "hover:border-warn hover:text-warn" },
-  { key: "cancel", label: "직전취소", hint: "직전 취소 (출석 미인정)", on: "bg-accent-soft text-accent", hover: "hover:border-accent hover:text-accent" },
+  { key: "cancel", label: "당일취소", hint: "당일 취소 (출석 미인정)", on: "bg-accent-soft text-accent", hover: "hover:border-accent hover:text-accent" },
   { key: "noshow", label: "무단불참", hint: "무단 불참 (출석 미인정)", on: "bg-danger-soft text-danger", hover: "hover:border-danger hover:text-danger" },
 ];
 
@@ -105,7 +105,7 @@ export default function AttendeeEditor({
         <p className="border-b border-line px-4 py-2 text-xs text-muted" aria-live="polite">
           참석 <b className="text-fg">{attendN}</b>명
           {lateN > 0 && <> · <span className="font-medium text-warn">지각 {lateN}</span></>}
-          {cancelN > 0 && <> · <span className="font-medium text-accent">직전취소 {cancelN}</span></>}
+          {cancelN > 0 && <> · <span className="font-medium text-accent">당일취소 {cancelN}</span></>}
           {noshowN > 0 && <> · <span className="font-medium text-danger">무단불참 {noshowN}</span></>}
         </p>
         {rows.length === 0 ? (

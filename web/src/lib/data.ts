@@ -101,7 +101,7 @@ export async function saveLate(wt: string, ids: string[]) {
   await setJson("meetup_late", all);
 }
 
-// ---------- 직전 취소 / 무단 불참 (벙별 · 신청자별) ----------
+// ---------- 당일 취소 / 무단 불참 (벙별 · 신청자별) ----------
 // 신청(attendee_ids)은 그대로 두고 '출석 미인정' 표시만 따로 저장한다.
 export type Absence = "cancel" | "noshow";
 export const loadAbsent = () => getJson<Record<string, Record<string, Absence>>>("meetup_absent", {});
@@ -195,7 +195,7 @@ export async function mergedData(): Promise<MergedData> {
     mt.attendee_ids = ids;
     mt.attendee_names = ids.map((i) => byMid.get(i)?.name ?? `(미확인:${i.slice(0, 6)})`);
     mt.cancelled = cancelled.has(wt); // 취소된 벙은 출석 미인정
-    // 직전 취소 / 무단 불참: 신청자 중에서만 인정, 출석(참가)에서는 제외
+    // 당일 취소 / 무단 불참: 신청자 중에서만 인정, 출석(참가)에서는 제외
     const ab = Object.entries(absentMap[wt] ?? {}).filter(([i]) => ids.includes(i));
     mt.cancel_ids = ab.filter(([, v]) => v === "cancel").map(([i]) => i);
     mt.noshow_ids = ab.filter(([, v]) => v === "noshow").map(([i]) => i);

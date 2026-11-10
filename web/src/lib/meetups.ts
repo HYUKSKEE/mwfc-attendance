@@ -6,7 +6,7 @@ import type { Meetup, Status } from "./types";
 // 벙 쓰기 로직 (서버 액션에서 사용). 소모임 원본은 건드리지 않고 '차이'만 저장한다.
 
 /**
- * 최종 신청자 + 상태(지각/직전취소/무단불참)로 맞춤. 수동 벙은 직접 수정, 수집 벙은 add/remove 차이 저장.
+ * 최종 신청자 + 상태(지각/당일취소/무단불참)로 맞춤. 수동 벙은 직접 수정, 수집 벙은 add/remove 차이 저장.
  * 상태는 신청자에게만 붙고, 한 사람당 하나(없으면 정상 참석). 빠진 사람의 상태는 함께 정리한다.
  */
 export async function setAttendance(wt: string, ids: string[], status: Record<string, Status>) {

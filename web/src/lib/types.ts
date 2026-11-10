@@ -15,7 +15,7 @@ export type Member = {
   last_attended?: string;
   /** 지각 횟수 (취소된 벙 제외) */
   late_count?: number;
-  /** 직전 취소 횟수 (참가 미인정) */
+  /** 당일 취소 횟수 (참가 미인정) */
   cancel_count?: number;
   /** 무단 불참 횟수 (참가 미인정) */
   noshow_count?: number;
@@ -45,7 +45,7 @@ export type Meetup = {
   cancelled?: boolean;
   /** 이 벙에서 지각한 사람 (attendee_ids 의 부분집합) */
   late_ids?: string[];
-  /** 신청했다가 직전에 취소한 사람 (attendee_ids 의 부분집합, 출석 미인정) */
+  /** 신청했다가 당일에 취소한 사람 (attendee_ids 의 부분집합, 출석 미인정) */
   cancel_ids?: string[];
   /** 신청하고 무단으로 불참한 사람 (attendee_ids 의 부분집합, 출석 미인정) */
   noshow_ids?: string[];

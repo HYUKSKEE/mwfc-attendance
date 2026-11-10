@@ -33,7 +33,7 @@ export default async function MembersPage(props: PageProps<"/members">) {
               <th className="px-4 py-2 font-medium">마지막 참가</th>
               <th className="px-4 py-2 text-right font-medium">참가 횟수</th>
               <th className="px-4 py-2 text-right font-medium">지각</th>
-              <th className="px-4 py-2 text-right font-medium">직전취소</th>
+              <th className="px-4 py-2 text-right font-medium">당일취소</th>
               <th className="px-4 py-2 text-right font-medium">무단불참</th>
             </tr>
           </thead>
