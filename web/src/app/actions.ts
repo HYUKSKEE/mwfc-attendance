@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { checkLogin, issueToken } from "@/lib/auth";
-import { adminError, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
+import { adminError, attendanceError, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
 import { DATA_TAG } from "@/lib/queries";
 import { collectData } from "@/lib/somoim/collect";
 import { acquireLock, releaseLock } from "@/lib/store";
@@ -27,7 +27,7 @@ export async function login(_prev: ActionResult, formData: FormData): Promise<Ac
     path: "/",
     maxAge: SESSION_MAX_AGE,
   });
-  redirect("/");
+  redirect(role === "pacer" ? "/today" : "/");
 }
 
 export async function logout() {
@@ -37,7 +37,7 @@ export async function logout() {
 
 // ---------- 벙 / 참석자 ----------
 export async function setAttendees(wt: number, ids: string[], status: Record<string, Status>): Promise<ActionResult> {
-  const err = await adminError();
+  const err = await attendanceError(wt); // 운영진 전체 / 페이서는 당일 벙만
   if (err) return fail(err);
   try {
     await setAttendance(String(wt), ids, status);

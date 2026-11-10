@@ -4,7 +4,7 @@ import { HeaderButtons, HeaderDialogs } from "@/components/HeaderActions";
 import InstallBanner from "@/components/InstallBanner";
 import { MobileTabs, Sidebar } from "@/components/Sidebar";
 import { getData } from "@/lib/queries";
-import { requireSession } from "@/lib/session";
+import { requireStaff } from "@/lib/session";
 import { KST_TODAY } from "@/lib/url";
 
 // 소모임 수집(서버 액션)이 오래 걸릴 수 있다
@@ -12,7 +12,7 @@ export const maxDuration = 300;
 
 async function AdminShell({ children }: { children: ReactNode }) {
   await connection(); // 로그인 상태·오늘 날짜는 요청마다 다르므로 요청 시점에 렌더
-  const session = await requireSession(); // 로그인 안 했으면 /login
+  const session = await requireStaff(); // 로그인 안 했으면 /login, 페이서는 /today
   const data = await getData();
   const canEdit = session.role === "admin";
 
