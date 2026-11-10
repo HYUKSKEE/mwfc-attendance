@@ -13,12 +13,17 @@ export default function PanelActions({
   const [pending, start] = useTransition();
   const [err, setErr] = useState("");
 
-  const toggle = () =>
+  const toggle = () => {
+    const ok = window.confirm(cancelled
+      ? "벙 취소를 해제할까요?\n다시 출석으로 집계돼요."
+      : "이 벙을 취소 처리할까요?\n출석 집계에서 제외돼요.");
+    if (!ok) return;
     start(async () => {
       setErr("");
       const r = await setCancelled(wt, !cancelled);
       if (!r.ok) setErr(r.error ?? "실패했어요");
     });
+  };
 
   const del = () => {
     if (!window.confirm("이 벙을 삭제할까요?\n삭제하면 목록과 출석 집계에서 사라져요.")) return;

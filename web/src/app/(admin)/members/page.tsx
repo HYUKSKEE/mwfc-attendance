@@ -24,9 +24,9 @@ export default async function MembersPage(props: PageProps<"/members">) {
           <input name="q" defaultValue={q} className={`${inputCls} pl-8`} placeholder="이름 검색 후 Enter" />
         </form>
       </header>
-      <div className="overflow-x-auto">
+      <div className="max-h-[calc(100dvh-13rem)] overflow-auto">
         <table className="w-full min-w-[640px] text-sm">
-          <thead className="bg-panel2 text-left text-xs text-muted">
+          <thead className="sticky top-0 z-10 bg-panel2 text-left text-xs text-muted shadow-[0_1px_0_var(--line)]">
             <tr>
               <th className="px-4 py-2 font-medium">이름</th>
               <th className="px-4 py-2 font-medium">가입일</th>

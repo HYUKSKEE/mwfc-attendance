@@ -19,7 +19,11 @@ export default function MeetupFormDialog({
 
   return (
     <ModalShell title={mode === "add" ? "벙 추가" : "벙 수정"} closeHref={closeHref}>
-      <form action={action} className="space-y-3">
+      <form action={action} className="space-y-3"
+        onSubmit={(e) => {
+          // 수정은 저장 전에 한 번 더 확인
+          if (mode === "edit" && !window.confirm("이 벙의 내용을 수정할까요?")) e.preventDefault();
+        }}>
         <input type="hidden" name="mode" value={mode} />
         {wt !== undefined && <input type="hidden" name="wt" value={wt} />}
         <Field label="벙 이름">

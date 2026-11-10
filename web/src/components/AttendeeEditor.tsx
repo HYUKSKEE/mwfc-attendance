@@ -65,10 +65,14 @@ export default function AttendeeEditor({
 
   const add = (id: string) => { commit({ ids: [...ids, id], st }); setQ(""); };
   const remove = (id: string) => {
+    if (!window.confirm(`${nameOf.get(id) ?? "이 회원"}님을 신청자에서 제거할까요?`)) return;
     const { [id]: _drop, ...rest } = st;
     commit({ ids: ids.filter((x) => x !== id), st: rest });
   };
   const toggle = (id: string, k: Status) => {
+    const label = STATUSES.find((s) => s.key === k)!.label;
+    const who = nameOf.get(id) ?? "이 회원";
+    if (!window.confirm(st[id] === k ? `${who}님의 ${label} 표시를 해제할까요?` : `${who}님을 ${label}(으)로 표시할까요?`)) return;
     const { [id]: cur, ...rest } = st;
     commit({ ids, st: cur === k ? rest : { ...rest, [id]: k } });
   };
