@@ -146,6 +146,11 @@ export function buildDashboard(data: MergedData, today: string, range: number) {
     months.push(d.toISOString().slice(0, 7));
   }
   const joinedMonthly = new Map(months.map((k) => [k, 0]));
+  const leftMonthly = new Map(months.map((k) => [k, 0]));
+  for (const d of data.departed ?? []) {
+    const k = monthKey(d);
+    if (leftMonthly.has(k)) leftMonthly.set(k, leftMonthly.get(k)! + 1);
+  }
   let recentJoined = 0;
   let recentJoinedAttended = 0;
   const recentFrom = addDays(today, -89);
@@ -155,12 +160,18 @@ export function buildDashboard(data: MergedData, today: string, range: number) {
     if (joinedMonthly.has(k)) joinedMonthly.set(k, joinedMonthly.get(k)! + 1);
     if (m.joined_date >= recentFrom) { recentJoined++; if (stat.has(m.mid)) recentJoinedAttended++; }
   }
-  const joins = months.map((k) => ({ label: `${Number(k.slice(5))}월`, key: k, count: joinedMonthly.get(k)! }));
+  // count: 현재 회원 중 해당 월 가입자, left: 같은 달 가입 후 탈퇴·강퇴(재수집 전엔 0)
+  const hasDeparted = data.departed !== undefined;
+  const joins = months.map((k) => ({
+    label: `${Number(k.slice(5))}월`, key: k, count: joinedMonthly.get(k)!, left: leftMonthly.get(k)!,
+  }));
+  const joinTotal = joins.reduce((s, j) => s + j.count + j.left, 0);
+  const joinLeft = joins.reduce((s, j) => s + j.left, 0);
 
   return {
     from, today, range, hasPrev, cur, prev, weeks, weekdays, buckets, lapsing: lapsing.slice(0, 8),
     memberCount: members.length, topMeetups, topMembers, places, quality, offenders,
-    joins, recentJoined, recentJoinedAttended, earliest,
+    joins, hasDeparted, joinTotal, joinLeft, recentJoined, recentJoinedAttended, earliest,
   };
 }
 

@@ -181,13 +181,24 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
               )}
             </Card>
 
-            <Card title="월별 신규 가입" sub={t.recentJoined
-              ? `최근 90일 가입 ${t.recentJoined}명 중 ${t.recentJoinedAttended}명이 참석 (${nf((t.recentJoinedAttended / t.recentJoined) * 100)}%)`
-              : "최근 6개월"} className="lg:col-span-2">
-              <ColumnChart height={130} ariaLabel="월별 신규 가입자" items={t.joins.map((j) => ({
-                label: j.label, value: j.count, showLabel: true, tip: `${j.key} · ${j.count}명 가입`,
-                valueLabel: j.count > 0 ? String(j.count) : undefined,
-              }))} />
+            <Card title="월별 신규 가입" sub={t.hasDeparted
+              ? `최근 6개월 가입 ${t.joinTotal}명 중 ${t.joinLeft}명 탈퇴·강퇴${t.joinTotal ? ` (${nf((t.joinLeft / t.joinTotal) * 100)}%)` : ""}`
+              : "현재 회원 기준 · 탈퇴·강퇴는 다음 수집부터 반영돼요"} className="lg:col-span-2">
+              <ColumnChart height={130} ariaLabel="월별 신규 가입자" items={t.joins.map((j) => {
+                const all = j.count + j.left;
+                return {
+                  label: j.label, value: all, part: j.count, showLabel: true,
+                  tip: t.hasDeparted ? `${j.key} · ${all}명 가입 (현재 ${j.count}명 · 탈퇴·강퇴 ${j.left}명)` : `${j.key} · ${all}명 가입`,
+                  valueLabel: all > 0 ? String(all) : undefined,
+                };
+              })} />
+              {t.hasDeparted && (
+                <p className="mt-2 flex flex-wrap gap-x-3 text-[11px] text-muted">
+                  <span className="inline-flex items-center gap-1"><i className="inline-block size-2 rounded-sm bg-accent" />현재 회원</span>
+                  <span className="inline-flex items-center gap-1"><i className="inline-block size-2 rounded-sm bg-muted/35" />탈퇴·강퇴</span>
+                  {t.recentJoined > 0 && <span>· 최근 90일 가입 중 현재 회원 {t.recentJoined}명 가운데 {t.recentJoinedAttended}명 참석</span>}
+                </p>
+              )}
             </Card>
           </div>
 

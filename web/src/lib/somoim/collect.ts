@@ -20,7 +20,7 @@ export function kstNowStr(): string {
 
 type RawMember = Record<string, unknown>;
 
-/** sync_gi → 회원 명단(탈퇴 제외) + 그룹 정보 */
+/** sync_gi → 회원 명단(탈퇴 제외) + 탈퇴·강퇴자 가입일 + 그룹 정보 */
 export async function getMembers(cred: SomoimCred) {
   const cfg = getConfig();
   const body = {
@@ -36,10 +36,16 @@ export async function getMembers(cred: SomoimCred) {
   }
 
   const members: Record<string, Member> = {};
+  const departed: string[] = [];
   for (const m of Array.isArray(j.m) ? j.m : []) {
     if (!m || typeof m !== "object") continue;
     const mid = m.mid as string | undefined;
-    if (!mid || m.ban === "Y") continue; // 탈퇴/강퇴 제외 → 현재 회원만
+    if (!mid) continue;
+    if (m.ban === "Y") { // 탈퇴/강퇴: 회원 목록엔 넣지 않고 가입일만 보관(신규 가입 통계용)
+      const d = fmt(m.j_t as number);
+      if (d) departed.push(d);
+      continue;
+    }
     members[mid] = {
       mid,
       name: (m.mn as string) ?? "",
@@ -83,7 +89,7 @@ export async function getMembers(cred: SomoimCred) {
       });
     }
   }
-  return { members, group };
+  return { members, group, departed };
 }
 
 type RawArticle = { id?: string; w_t?: number; cat?: string; at?: string };
@@ -155,7 +161,7 @@ export async function collectData(rawDays: number) {
   const cred = credFromEnv();
   const cfg = getConfig();
 
-  const { members, group } = await getMembers(cred);
+  const { members, group, departed } = await getMembers(cred);
   const articles = await getArticles(cred, days);
   const eventArticles = articles.filter(
     (a) => cfg.eventCats === null || (a.cat && cfg.eventCats.has(a.cat)),
@@ -211,6 +217,7 @@ export async function collectData(rawDays: number) {
     group,
     generated: kstNowStr(),
     members: Object.values(members).sort((a, b) => a.joined - b.joined),
+    departed: departed.sort(),
   };
   await setJson("attendance_data", base);
   return { members: base.members.length, meetups: Object.keys(archive).length, generated: base.generated };

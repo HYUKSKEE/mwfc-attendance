@@ -57,7 +57,8 @@ const niceMax = (v: number) => {
   return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
 };
 
-export type Col = { label: string; value: number; tip: string; tone?: "accent" | "muted" | "pending"; valueLabel?: string; showLabel?: boolean };
+export type Col = { label: string; value: number; tip: string; tone?: "accent" | "muted" | "pending"; valueLabel?: string; showLabel?: boolean;
+  /** 막대 아래쪽 part만 진하게(나머지는 연하게). 예: 가입자 중 현재 남은 사람 */ part?: number };
 
 /** 세로 막대. 한 색(강조/흐림)으로만 구분, 눈금은 0/중간/최대 */
 export function ColumnChart({ items, ariaLabel, height = 176 }: { items: Col[]; ariaLabel: string; height?: number }) {
@@ -76,8 +77,12 @@ export function ColumnChart({ items, ariaLabel, height = 176 }: { items: Col[]; 
             {items.map((it, i) => (
               <div key={i} tabIndex={0} aria-label={it.tip}
                 className="group relative flex h-full flex-1 items-end justify-center outline-none">
-                <div className={`w-full max-w-6 rounded-t-[4px] transition-opacity group-hover:opacity-80 group-focus-visible:opacity-80 ${tone[it.tone ?? "accent"]}`}
-                  style={{ height: `${Math.max(it.value > 0 ? 1.5 : 0, (it.value / max) * 100)}%` }} />
+                <div className={`relative w-full max-w-6 overflow-hidden rounded-t-[4px] transition-opacity group-hover:opacity-80 group-focus-visible:opacity-80 ${it.part === undefined ? tone[it.tone ?? "accent"] : "bg-muted/35"}`}
+                  style={{ height: `${Math.max(it.value > 0 ? 1.5 : 0, (it.value / max) * 100)}%` }}>
+                  {it.part !== undefined && it.value > 0 && (
+                    <div className="absolute inset-x-0 bottom-0 bg-accent" style={{ height: `${(it.part / it.value) * 100}%` }} />
+                  )}
+                </div>
                 {it.valueLabel && (
                   <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-[10px] font-semibold tabular-nums"
                     style={{ bottom: `calc(${(it.value / max) * 100}% + 2px)` }}>
