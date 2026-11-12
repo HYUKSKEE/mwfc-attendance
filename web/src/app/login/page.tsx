@@ -8,7 +8,7 @@ export const metadata = { title: "로그인" };
 
 async function LoginCard() {
   const s = await getSession();
-  if (s) redirect(s.role === "pacer" ? "/today" : "/");
+  if (s) redirect(s.role === "pacer" ? "/today" : "/dashboard");
   const misconfigured = lockState() === "misconfigured";
   return (
     <div className="w-full max-w-sm rounded-xl border border-line bg-panel p-7 shadow-sm">

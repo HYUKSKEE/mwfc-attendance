@@ -27,7 +27,7 @@ export async function login(_prev: ActionResult, formData: FormData): Promise<Ac
     path: "/",
     maxAge: SESSION_MAX_AGE,
   });
-  redirect(role === "pacer" ? "/today" : "/");
+  redirect(role === "pacer" ? "/today" : "/dashboard");
 }
 
 export async function logout() {

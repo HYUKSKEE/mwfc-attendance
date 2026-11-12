@@ -72,6 +72,8 @@ export type AttendanceBase = {
   group: Group;
   generated: string; // "YYYY-MM-DD HH:mm" (KST)
   members: Member[];
+  /** 탈퇴·강퇴(ban=Y)한 사람의 가입일 YYYY-MM-DD. 신규 가입 통계용(회원 목록에는 넣지 않음) */
+  departed?: string[];
 };
 
 export type MergedData = AttendanceBase & { meetups: Meetup[] };

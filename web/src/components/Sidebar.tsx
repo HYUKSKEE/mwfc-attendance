@@ -6,6 +6,7 @@ import { logout } from "@/app/actions";
 import { Icon, type IconName } from "./ui";
 
 const NAV: Array<{ href: string; label: string; icon: IconName }> = [
+  { href: "/dashboard", label: "대시보드", icon: "chart" },
   { href: "/", label: "캘린더", icon: "calendar" },
   { href: "/today", label: "오늘 벙", icon: "check" },
   { href: "/members", label: "회원", icon: "users" },
