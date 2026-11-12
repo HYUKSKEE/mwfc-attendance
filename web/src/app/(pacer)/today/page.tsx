@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui";
 import { getData } from "@/lib/queries";
 import { requireSession } from "@/lib/session";
 import type { Status } from "@/lib/types";
-import { KST_TODAY, fmtDay } from "@/lib/url";
+import { KST_TODAY, fmtDay, fmtTime } from "@/lib/url";
 
 export const metadata = { title: "오늘 벙" };
 
@@ -21,7 +21,7 @@ export default async function TodayPage(props: PageProps<"/today">) {
   const canEdit = role === "admin" || role === "pacer";
 
   const today = KST_TODAY();
-  const list = data.meetups.filter((m) => m.day === today).sort((a, b) => a.w_t - b.w_t);
+  const list = data.meetups.filter((m) => m.day === today).sort((a, b) => (a.time ?? 9999) - (b.time ?? 9999) || a.w_t - b.w_t); // 시간순
   const wt = Number(one(sp.meetup)) || null;
   // 오늘 벙이 하나뿐이면 자동 선택
   const selected = list.find((m) => m.w_t === wt) ?? (list.length === 1 ? list[0] : null);
@@ -59,7 +59,10 @@ export default async function TodayPage(props: PageProps<"/today">) {
                     on ? "border-accent bg-accent-soft" : "border-line bg-panel hover:bg-panel2"}`}>
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-semibold">{m.title}</span>
-                    <span className="mt-0.5 block truncate text-xs text-muted">{m.place || "장소 미정"}</span>
+                    <span className="mt-0.5 block truncate text-xs text-muted">
+                      {fmtTime(m.time) && <b className="mr-1.5 font-semibold text-fg">{fmtTime(m.time)}</b>}
+                      {m.place || "장소 미정"}
+                    </span>
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
                     {m.cancelled && <Badge tone="red">취소됨</Badge>}
@@ -77,7 +80,7 @@ export default async function TodayPage(props: PageProps<"/today">) {
           <header className="border-b border-line px-4 py-3">
             <h2 className="truncate text-[15px] font-semibold">{selected.title}</h2>
             <p className="mt-0.5 text-xs text-muted">
-              {fmtDay(today)}{selected.place ? ` · ${selected.place}` : ""}
+              {fmtDay(today)}{fmtTime(selected.time) ? ` ${fmtTime(selected.time)}` : ""}{selected.place ? ` · ${selected.place}` : ""}
             </p>
             {selected.cancelled && <p className="mt-2 text-xs text-danger">취소된 벙이라 수정할 수 없어요.</p>}
           </header>

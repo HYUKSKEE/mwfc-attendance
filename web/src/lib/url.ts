@@ -38,6 +38,25 @@ export function monthGrid(ym: string): string[] {
   return Array.from({ length: weeks * 7 }, (_, i) => addDays(first, i - dow));
 }
 
+/** 2030 → "오후 8:30", 1130 → "오전 11:30" (없으면 빈 문자열) */
+export function fmtTime(t: number | null | undefined): string {
+  if (t == null || !Number.isFinite(t)) return "";
+  const h = Math.floor(t / 100);
+  const m = t % 100;
+  if (h < 0 || h > 23 || m < 0 || m > 59) return "";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h < 12 ? "오전" : "오후"} ${h12}:${String(m).padStart(2, "0")}`;
+}
+
+/** 2030 → "20:30" (캘린더 칩처럼 좁은 곳용) */
+export function fmtTimeShort(t: number | null | undefined): string {
+  if (t == null || !Number.isFinite(t)) return "";
+  const h = Math.floor(t / 100);
+  const m = t % 100;
+  if (h < 0 || h > 23 || m < 0 || m > 59) return "";
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 export function fmtDay(day: string): string {
   const d = new Date(day + "T00:00:00Z");
   return `${Number(day.slice(5, 7))}월 ${Number(day.slice(8, 10))}일 (${WEEK[d.getUTCDay()]})`;

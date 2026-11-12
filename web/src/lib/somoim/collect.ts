@@ -140,7 +140,7 @@ export async function fetchEventAttendees(cred: SomoimCred, a: RawArticle) {
   };
   try {
     const { data: j } = await post<{
-      linked_event?: { attendee_ids?: string[]; en?: string; e_d?: number; el?: string };
+      linked_event?: { attendee_ids?: string[]; en?: string; e_d?: number; e_t?: number; el?: string };
     }>(`/comments/select_comments/${cred.MY_WID}.json`, body);
     const ev = j.linked_event ?? {};
     return { ev, ids: ev.attendee_ids ?? [] };
@@ -171,6 +171,7 @@ export async function collectData(rawDays: number) {
       fresh.push({
         title: res?.ev.en || a.at || "",
         date: res?.ev.e_d ?? null,
+        time: res?.ev.e_t ?? null,
         w_t: a.w_t ?? 0,
         date_str: fmt(a.w_t),
         place: res?.ev.el ?? "",
@@ -194,7 +195,7 @@ export async function collectData(rawDays: number) {
     if (prev && !mt.attendee_ids.length && prev.attendee_ids?.length) {
       archive[k] = { ...prev, live: true };
     } else {
-      archive[k] = mt;
+      archive[k] = { ...mt, time: mt.time ?? prev?.time ?? null };
     }
   }
   // 수집 기간 밖의 오래된 벙은 '삭제됨'이 아니므로 live 판정 대상에서 제외

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Meetup } from "@/lib/types";
-import { WEEK, addMonths, calHref, monthGrid } from "@/lib/url";
+import { WEEK, addMonths, calHref, fmtTime, fmtTimeShort, monthGrid } from "@/lib/url";
 import { Icon, LinkButton } from "./ui";
 
 const MAX_CHIPS = 3;
@@ -17,7 +17,7 @@ export default function CalendarGrid({
     l.push(m);
     byDay.set(m.day, l);
   }
-  for (const l of byDay.values()) l.sort((a, b) => a.w_t - b.w_t);
+  for (const l of byDay.values()) l.sort((a, b) => (a.time ?? 9999) - (b.time ?? 9999) || a.w_t - b.w_t);
 
   const monthCount = meetups.filter((m) => m.day?.startsWith(month) && !m.cancelled).length;
   const [y, mo] = month.split("-");
@@ -68,15 +68,19 @@ export default function CalendarGrid({
                 {list.slice(0, MAX_CHIPS).map((m) => {
                   const sel = m.w_t === selectedWt;
                   return (
-                    <Link key={m.w_t} href={calHref({ month, meetup: m.w_t })} prefetch={false} title={m.title}
+                    <Link key={m.w_t} href={calHref({ month, meetup: m.w_t })} prefetch={false}
+                      title={`${fmtTime(m.time) ? fmtTime(m.time) + " " : ""}${m.title}`}
                       aria-current={sel ? "true" : undefined}
                       className={`flex items-center justify-between gap-1 rounded px-1.5 py-1 text-[11px] leading-tight transition ${
                         sel ? "bg-accent text-accent-fg"
                           : m.cancelled ? "bg-panel2 text-muted line-through hover:bg-line"
                           : "bg-accent-soft text-accent hover:brightness-95"}`}>
-                      <span className="truncate">{m.title}</span>
+                      <span className="truncate">
+                        {fmtTimeShort(m.time) && <b className="mr-1 hidden font-semibold tabular-nums sm:inline">{fmtTimeShort(m.time)}</b>}
+                        {m.title}
+                      </span>
                       <span className={`shrink-0 rounded-full px-1.5 text-[10px] font-semibold ${sel ? "bg-white/25" : "bg-panel/70"}`}>
-                        {m.attendee_ids.length}
+                        {m.count ?? m.attendee_ids.length}
                       </span>
                     </Link>
                   );

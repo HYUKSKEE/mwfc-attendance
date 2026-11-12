@@ -1,5 +1,5 @@
 import type { Meetup, Member, Status } from "@/lib/types";
-import { calHref, fmtDay } from "@/lib/url";
+import { calHref, fmtDay, fmtTime } from "@/lib/url";
 import AttendeeEditor from "./AttendeeEditor";
 import PanelActions from "./PanelActions";
 import { Badge, Icon } from "./ui";
@@ -23,6 +23,7 @@ export default function MeetupPanel({
             <h2 className="truncate text-[15px] font-semibold" title={meetup.title}>{meetup.title}</h2>
             <p className="mt-0.5 text-xs text-muted">
               {meetup.day ? fmtDay(meetup.day) : "날짜 없음"}
+              {fmtTime(meetup.time) ? ` ${fmtTime(meetup.time)}` : ""}
               {meetup.place ? ` · ${meetup.place}` : ""}
             </p>
           </div>

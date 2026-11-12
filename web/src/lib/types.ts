@@ -33,6 +33,8 @@ export type Meetup = {
   title: string;
   date?: number | null; // e_d (YYYYMMDD)
   date_str: string;
+  /** 벙 시작 시각 HHMM (예: 2030 = 20:30). 소모임 e_t. 이전에 수집한 벙에는 없을 수 있음 */
+  time?: number | null;
   w_t: number;
   place: string;
   attendee_ids: string[];
