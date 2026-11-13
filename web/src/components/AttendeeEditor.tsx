@@ -186,12 +186,13 @@ export default function AttendeeEditor({
               const here = isHere(a.id);
               return (
                 <li key={a.id}
-                  className={`flex items-center justify-between gap-2 px-4 py-2 transition-colors ${here ? "bg-ok-soft" : ""}`}>
+                  className={`flex items-center justify-between gap-2 px-4 py-2 transition-colors ${
+                    cancelled ? "bg-muted/10 opacity-50" : here ? "bg-ok-soft" : ""}`}>
                   <span className={`flex min-w-0 items-center gap-2.5 text-sm ${out ? "text-muted line-through" : ""}`}>
                     <span className="w-5 shrink-0 text-right text-xs tabular-nums text-muted">{a.no}</span>
                     <span className="truncate">{a.name}</span>
                   </span>
-                  <span className="flex shrink-0 items-center gap-1">
+                  <span className={`flex shrink-0 items-center gap-1 ${cancelled ? "pointer-events-none" : ""}`}>
                     {canEdit && (
                       <button onClick={() => setCheck(a.id, !here)} aria-pressed={here} disabled={!!cur || past || cancelled}
                         title={cancelled ? "취소된 벙은 출석으로 집계되지 않아요" : cur ? "상태를 해제한 뒤 출석 체크할 수 있어요" : past ? "지난 벙은 취소·불참이 아니면 출석으로 집계돼요" : here ? "출석 체크 해제" : "출석 체크 (현장 확인용 표시)"}
@@ -202,7 +203,7 @@ export default function AttendeeEditor({
                     )}
                     {STATUSES.map((s) =>
                       canEdit ? (
-                        <button key={s.key} onClick={() => toggle(a.id, s.key)} aria-pressed={cur === s.key}
+                        <button key={s.key} onClick={() => toggle(a.id, s.key)} aria-pressed={cur === s.key} disabled={cancelled}
                           title={cur === s.key ? `${s.label} 해제` : s.hint}
                           className={`rounded-full border px-2 py-0.5 text-[11px] font-medium transition ${
                             cur === s.key ? `border-transparent ${s.on}` : `border-line text-muted ${s.hover}`}`}>
@@ -215,7 +216,7 @@ export default function AttendeeEditor({
                       ),
                     )}
                     {canEdit && (
-                      <button onClick={() => remove(a.id)} aria-label={`${a.name} 제거`} title="신청자에서 제거"
+                      <button onClick={() => remove(a.id)} disabled={cancelled} aria-label={`${a.name} 제거`} title="신청자에서 제거"
                         className="ml-0.5 rounded p-1 text-muted hover:bg-danger-soft hover:text-danger">
                         <Icon name="x" size={14} />
                       </button>
