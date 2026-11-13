@@ -43,7 +43,7 @@ export default function MeetupPanel({
 
       {/* key: 다른 벙을 고르면 편집기 상태(검색어 등) 초기화 */}
       <AttendeeEditor key={meetup.w_t} wt={meetup.w_t} attendeeIds={meetup.attendee_ids} status={status}
-        members={people} canEdit={canEdit} past={past} />
+        members={people} canEdit={canEdit} past={past} cancelled={!!meetup.cancelled} />
 
       {canEdit && <PanelActions wt={meetup.w_t} month={month} cancelled={!!meetup.cancelled} />}
     </div>

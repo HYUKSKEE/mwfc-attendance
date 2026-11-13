@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useOptimistic, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useOptimistic, useState, useTransition } from "react";
 import { setAttendees } from "@/app/actions";
 import type { Status } from "@/lib/types";
 import { Icon, inputCls } from "./ui";
@@ -23,8 +23,8 @@ const STATUSES: { key: Status; label: string; hint: string; on: string; hover: s
 ];
 
 export default function AttendeeEditor({
-  wt, attendeeIds, status, members, canEdit, past = false,
-}: { wt: number; attendeeIds: string[]; status: Record<string, Status>; members: P[]; canEdit: boolean; past?: boolean }) {
+  wt, attendeeIds, status, members, canEdit, past = false, cancelled = false,
+}: { wt: number; attendeeIds: string[]; status: Record<string, Status>; members: P[]; canEdit: boolean; past?: boolean; cancelled?: boolean }) {
   const [{ ids, st }, setOptimistic] = useOptimistic<State, State>(
     { ids: attendeeIds, st: status },
     (_cur, next) => next,
@@ -38,10 +38,6 @@ export default function AttendeeEditor({
   const [q, setQ] = useState("");
   const [err, setErr] = useState("");
   const [tab, setTab] = useState<Tab>("all");
-
-  // 지난 벙은 당일취소·무단불참(·지각)이 아닌 사람이 모두 출석으로 보인다(집계 기준과 동일).
-  // 오늘/예정 벙은 현장에서 체크한 사람만 출석으로 본다.
-  const isHere = (id: string) => !st[id] && (past || checked.has(id));
 
   // '출석' 체크: 현장 확인용 표시일 뿐이라 서버에 저장하지 않는다(데이터·집계와 무관).
   // 새로고침해도 유지되도록 이 브라우저에만 보관한다.
@@ -60,6 +56,14 @@ export default function AttendeeEditor({
       try { localStorage.setItem(key, JSON.stringify([...next])); } catch {}
       return next;
     });
+
+  // 지난 벙은 당일취소·무단불참(·지각)이 아닌 사람이 모두 출석으로 보인다(집계 기준과 동일).
+  // 오늘/예정 벙은 현장에서 체크한 사람만 출석으로 본다.
+  // 취소된 벙은 출석으로 집계되지 않으므로 출석으로 보이지 않고 출석 체크도 막는다.
+  const isHere = useCallback(
+    (id: string) => !cancelled && !st[id] && (past || checked.has(id)),
+    [cancelled, st, past, checked],
+  );
 
   const nameOf = useMemo(() => new Map(members.map((m) => [m.id, m.name])), [members]);
   const rows = useMemo(
@@ -88,7 +92,7 @@ export default function AttendeeEditor({
           if (tab === "here") return isHere(r.id);
           return cur === tab;
         }),
-    [rows, st, checked, tab, past],
+    [rows, st, tab, isHere],
   );
 
   const candidates = useMemo(() => {
@@ -189,8 +193,8 @@ export default function AttendeeEditor({
                   </span>
                   <span className="flex shrink-0 items-center gap-1">
                     {canEdit && (
-                      <button onClick={() => setCheck(a.id, !here)} aria-pressed={here} disabled={!!cur || past}
-                        title={cur ? "상태를 해제한 뒤 출석 체크할 수 있어요" : past ? "지난 벙은 취소·불참이 아니면 출석으로 집계돼요" : here ? "출석 체크 해제" : "출석 체크 (현장 확인용 표시)"}
+                      <button onClick={() => setCheck(a.id, !here)} aria-pressed={here} disabled={!!cur || past || cancelled}
+                        title={cancelled ? "취소된 벙은 출석으로 집계되지 않아요" : cur ? "상태를 해제한 뒤 출석 체크할 수 있어요" : past ? "지난 벙은 취소·불참이 아니면 출석으로 집계돼요" : here ? "출석 체크 해제" : "출석 체크 (현장 확인용 표시)"}
                         className={`rounded-full border px-2 py-0.5 text-[11px] font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
                           here ? "border-ok bg-ok-soft text-ok" : "border-line text-muted enabled:hover:border-ok enabled:hover:text-ok"}`}>
                         출석
