@@ -23,8 +23,8 @@ const STATUSES: { key: Status; label: string; hint: string; on: string; hover: s
 ];
 
 export default function AttendeeEditor({
-  wt, attendeeIds, status, members, canEdit, past = false, cancelled = false,
-}: { wt: number; attendeeIds: string[]; status: Record<string, Status>; members: P[]; canEdit: boolean; past?: boolean; cancelled?: boolean }) {
+  wt, attendeeIds, status, members, canEdit, past = false, locked = false,
+}: { wt: number; attendeeIds: string[]; status: Record<string, Status>; members: P[]; canEdit: boolean; past?: boolean; locked?: boolean }) {
   const [{ ids, st }, setOptimistic] = useOptimistic<State, State>(
     { ids: attendeeIds, st: status },
     (_cur, next) => next,
@@ -59,10 +59,10 @@ export default function AttendeeEditor({
 
   // 지난 벙은 당일취소·무단불참(·지각)이 아닌 사람이 모두 출석으로 보인다(집계 기준과 동일).
   // 오늘/예정 벙은 현장에서 체크한 사람만 출석으로 본다.
-  // 취소된 벙은 출석으로 집계되지 않으므로 출석으로 보이지 않고 출석 체크도 막는다.
+  // 잠김(취소됐거나 소모임에서 삭제된 벙): 출석으로 보이지 않고 행의 모든 버튼을 막는다.
   const isHere = useCallback(
-    (id: string) => !cancelled && !st[id] && (past || checked.has(id)),
-    [cancelled, st, past, checked],
+    (id: string) => !locked && !st[id] && (past || checked.has(id)),
+    [locked, st, past, checked],
   );
 
   const nameOf = useMemo(() => new Map(members.map((m) => [m.id, m.name])), [members]);
@@ -187,15 +187,15 @@ export default function AttendeeEditor({
               return (
                 <li key={a.id}
                   className={`flex items-center justify-between gap-2 px-4 py-2 transition-colors ${
-                    cancelled ? "bg-muted/10 opacity-50" : here ? "bg-ok-soft" : ""}`}>
+                    locked ? "bg-muted/10 opacity-50" : here ? "bg-ok-soft" : ""}`}>
                   <span className={`flex min-w-0 items-center gap-2.5 text-sm ${out ? "text-muted line-through" : ""}`}>
                     <span className="w-5 shrink-0 text-right text-xs tabular-nums text-muted">{a.no}</span>
                     <span className="truncate">{a.name}</span>
                   </span>
-                  <span className={`flex shrink-0 items-center gap-1 ${cancelled ? "pointer-events-none" : ""}`}>
+                  <span className={`flex shrink-0 items-center gap-1 ${locked ? "pointer-events-none" : ""}`}>
                     {canEdit && (
-                      <button onClick={() => setCheck(a.id, !here)} aria-pressed={here} disabled={!!cur || past || cancelled}
-                        title={cancelled ? "취소된 벙은 출석으로 집계되지 않아요" : cur ? "상태를 해제한 뒤 출석 체크할 수 있어요" : past ? "지난 벙은 취소·불참이 아니면 출석으로 집계돼요" : here ? "출석 체크 해제" : "출석 체크 (현장 확인용 표시)"}
+                      <button onClick={() => setCheck(a.id, !here)} aria-pressed={here} disabled={!!cur || past || locked}
+                        title={locked ? "취소·삭제된 벙은 수정할 수 없어요" : cur ? "상태를 해제한 뒤 출석 체크할 수 있어요" : past ? "지난 벙은 취소·불참이 아니면 출석으로 집계돼요" : here ? "출석 체크 해제" : "출석 체크 (현장 확인용 표시)"}
                         className={`rounded-full border px-2 py-0.5 text-[11px] font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
                           here ? "border-ok bg-ok-soft text-ok" : "border-line text-muted enabled:hover:border-ok enabled:hover:text-ok"}`}>
                         출석
@@ -203,7 +203,7 @@ export default function AttendeeEditor({
                     )}
                     {STATUSES.map((s) =>
                       canEdit ? (
-                        <button key={s.key} onClick={() => toggle(a.id, s.key)} aria-pressed={cur === s.key} disabled={cancelled}
+                        <button key={s.key} onClick={() => toggle(a.id, s.key)} aria-pressed={cur === s.key} disabled={locked}
                           title={cur === s.key ? `${s.label} 해제` : s.hint}
                           className={`rounded-full border px-2 py-0.5 text-[11px] font-medium transition ${
                             cur === s.key ? `border-transparent ${s.on}` : `border-line text-muted ${s.hover}`}`}>
@@ -216,7 +216,7 @@ export default function AttendeeEditor({
                       ),
                     )}
                     {canEdit && (
-                      <button onClick={() => remove(a.id)} disabled={cancelled} aria-label={`${a.name} 제거`} title="신청자에서 제거"
+                      <button onClick={() => remove(a.id)} disabled={locked} aria-label={`${a.name} 제거`} title="신청자에서 제거"
                         className="ml-0.5 rounded p-1 text-muted hover:bg-danger-soft hover:text-danger">
                         <Icon name="x" size={14} />
                       </button>

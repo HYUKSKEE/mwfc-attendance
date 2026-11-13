@@ -42,6 +42,8 @@ export type Meetup = {
   count?: number;
   cat?: string;
   live?: boolean;
+  /** 소모임 목록에서 처음 사라진 것을 수집이 감지한 시각(epoch ms). live=false 로 바뀔 때만 기록, 다시 나타나면 지움 */
+  gone_at?: number | null;
   source?: string;
   manual?: boolean;
   cancelled?: boolean;

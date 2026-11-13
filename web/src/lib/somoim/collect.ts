@@ -200,6 +200,7 @@ export async function collectData(rawDays: number) {
     const prev = archive[k];
     if (prev && !mt.attendee_ids.length && prev.attendee_ids?.length) {
       archive[k] = { ...prev, live: true };
+      delete archive[k].gone_at; // 다시 나타났으니 삭제 감지 기록 제거
     } else {
       archive[k] = { ...mt, time: mt.time ?? prev?.time ?? null };
     }
@@ -209,6 +210,8 @@ export async function collectData(rawDays: number) {
   for (const [k, mt] of Object.entries(archive)) {
     if (freshKeys.has(k)) continue;
     if (mt.w_t < lowerWt) continue;
+    // live 에서 처음 사라진 순간만 기록(이미 사라진 벙의 시각은 덮어쓰지 않는다)
+    if (mt.live !== false) mt.gone_at = Date.now();
     mt.live = false;
   }
   await setJson("meetups_archive", archive);

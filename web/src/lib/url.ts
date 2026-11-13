@@ -61,3 +61,20 @@ export function fmtDay(day: string): string {
   const d = new Date(day + "T00:00:00Z");
   return `${Number(day.slice(5, 7))}월 ${Number(day.slice(8, 10))}일 (${WEEK[d.getUTCDay()]})`;
 }
+
+/** 벙 시작 시각(epoch ms, KST). 시간 정보(HHMM)가 없으면 그날 0시 */
+export function meetupStartMs(day: string, time?: number | null): number {
+  const hh = time != null ? String(Math.floor(time / 100)).padStart(2, "0") : "00";
+  const mm = time != null ? String(time % 100).padStart(2, "0") : "00";
+  return Date.parse(`${day}T${hh}:${mm}:00+09:00`);
+}
+
+/**
+ * 소모임에서 삭제된 벙이 '시작 전에 삭제'로 볼 만한가.
+ * 삭제 감지 시각(gone_at)이 시작보다 이르거나, 기록이 없으면(이전에 사라진 벙) 시작 전으로 본다.
+ */
+export function deletedBeforeStart(m: { live?: boolean; gone_at?: number | null; day?: string; time?: number | null }): boolean {
+  if (m.live !== false) return false;
+  if (!m.gone_at || !m.day) return true;
+  return m.gone_at < meetupStartMs(m.day, m.time);
+}

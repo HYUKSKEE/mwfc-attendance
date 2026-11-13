@@ -1,5 +1,5 @@
 import type { Meetup, Member, Status } from "@/lib/types";
-import { calHref, fmtDay, fmtTime } from "@/lib/url";
+import { calHref, deletedBeforeStart, fmtDay, fmtTime } from "@/lib/url";
 import AttendeeEditor from "./AttendeeEditor";
 import PanelActions from "./PanelActions";
 import { Badge, Icon } from "./ui";
@@ -9,6 +9,7 @@ import Link from "next/link";
 export default function MeetupPanel({
   meetup, members, canEdit, month, past = false,
 }: { meetup: Meetup; members: Member[]; canEdit: boolean; month: string; past?: boolean }) {
+  const deleted = deletedBeforeStart(meetup); // 시작 전에 소모임에서 삭제된 벙(감지 기록이 없으면 포함)
   const status: Record<string, Status> = {};
   for (const i of meetup.late_ids ?? []) status[i] = "late";
   for (const i of meetup.cancel_ids ?? []) status[i] = "cancel";
@@ -37,13 +38,16 @@ export default function MeetupPanel({
           {meetup.source === "manual" && <Badge tone="amber">수동 추가</Badge>}
           {meetup.manual && <Badge tone="amber">참석자 보정됨</Badge>}
           {meetup.edited && <Badge tone="amber">수정됨</Badge>}
-          {meetup.live === false && <Badge>소모임에서 삭제됨(보관)</Badge>}
+          {meetup.live === false && (
+            <Badge>{!meetup.gone_at ? "소모임에서 삭제됨(보관)" : deleted ? "소모임에서 시작 전 삭제됨" : "소모임에서 시작 후 삭제됨"}</Badge>
+          )}
         </div>
       </header>
 
       {/* key: 다른 벙을 고르면 편집기 상태(검색어 등) 초기화 */}
       <AttendeeEditor key={meetup.w_t} wt={meetup.w_t} attendeeIds={meetup.attendee_ids} status={status}
-        members={people} canEdit={canEdit} past={past} cancelled={!!meetup.cancelled} />
+        members={people} canEdit={canEdit} past={past}
+        locked={!!meetup.cancelled || deleted} />
 
       {canEdit && <PanelActions wt={meetup.w_t} month={month} cancelled={!!meetup.cancelled} />}
     </div>

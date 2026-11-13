@@ -11,7 +11,7 @@ npm run dev   # http://localhost:3000
 - **캘린더**: 월간 달력에 벙 표시 → 벙 선택 시 참석자 확인, 인원 추가/제거, 벙 수정/취소/삭제, 벙 추가
 - **출석표 뽑기**: 최근 7~180일 벙 × 회원 엑셀(.xlsx)
 - **회원**: 가입일 / 마지막 참가 / 참가 횟수
-- **데이터 가져오기**: 소모임에서 회원·벙 수집 (매일 크론으로도 자동 수집)
+- **데이터 가져오기**: 소모임에서 회원·벙 수집 (Vercel 크론 매일 + GitHub Actions 매시 자동 수집)
 
 ## 구조 (Next.js App Router)
 | 위치 | 역할 |
@@ -27,4 +27,6 @@ npm run dev   # http://localhost:3000
 - 환경변수는 `.env.example` 참고. 배포 시 `ADMIN_PASSWORD`(운영진) · `PACER_PASSWORD`(페이서, 당일 벙 출석만) · `WEB_PASSWORD`(보기 전용) 중 하나 이상 필수(없으면 전부 차단)
 - 저장소: 배포는 Upstash Redis(`KV_REST_API_URL/TOKEN`), 로컬은 `.data/*.json`
 - 로그인은 httpOnly 쿠키(서명 토큰, 30일). 관리자 비번 = 수정 가능, 일반 비번 = 보기 전용
-- 자동수집: `vercel.json` 크론 → `/api/cron/collect` (`CRON_SECRET` 필요)
+- 자동수집: `vercel.json` 크론(매일) 과 `.github/workflows/collect.yml`(GitHub Actions, 매시 7분) → `/api/cron/collect` (`CRON_SECRET` 필요)
+  - Actions 를 쓰려면 저장소 Secrets 에 `APP_URL`(운영 주소), `CRON_SECRET`(Vercel 과 같은 값) 등록
+  - 소모임에서 사라진 벙은 `live=false` + 감지 시각 `gone_at` 으로 보관(시작 전 삭제된 벙은 화면에서 잠금)
