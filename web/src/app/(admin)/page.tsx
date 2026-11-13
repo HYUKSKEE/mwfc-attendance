@@ -47,7 +47,8 @@ export default async function CalendarPage(props: PageProps<"/">) {
             <Link href={calHref({ month })} replace aria-label="닫기"
               className="fixed inset-0 z-30 bg-black/40 lg:hidden" />
             <aside className="fixed inset-x-0 bottom-0 z-40 rounded-t-xl border border-line bg-panel shadow-2xl lg:sticky lg:inset-x-auto lg:bottom-auto lg:top-[4.75rem] lg:z-auto lg:rounded-lg lg:shadow-none">
-              <MeetupPanel meetup={selected} members={data.members} canEdit={canEdit} month={month} />
+              <MeetupPanel meetup={selected} members={data.members} canEdit={canEdit} month={month}
+                past={!!selected.day && selected.day < today} />
             </aside>
           </>
         ) : (

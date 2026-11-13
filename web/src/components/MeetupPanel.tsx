@@ -7,8 +7,8 @@ import Link from "next/link";
 
 /** 선택한 벙 상세 (서버 컴포넌트). 인터랙션은 AttendeeEditor / PanelActions 에서만 */
 export default function MeetupPanel({
-  meetup, members, canEdit, month,
-}: { meetup: Meetup; members: Member[]; canEdit: boolean; month: string }) {
+  meetup, members, canEdit, month, past = false,
+}: { meetup: Meetup; members: Member[]; canEdit: boolean; month: string; past?: boolean }) {
   const status: Record<string, Status> = {};
   for (const i of meetup.late_ids ?? []) status[i] = "late";
   for (const i of meetup.cancel_ids ?? []) status[i] = "cancel";
@@ -43,7 +43,7 @@ export default function MeetupPanel({
 
       {/* key: 다른 벙을 고르면 편집기 상태(검색어 등) 초기화 */}
       <AttendeeEditor key={meetup.w_t} wt={meetup.w_t} attendeeIds={meetup.attendee_ids} status={status}
-        members={people} canEdit={canEdit} />
+        members={people} canEdit={canEdit} past={past} />
 
       {canEdit && <PanelActions wt={meetup.w_t} month={month} cancelled={!!meetup.cancelled} />}
     </div>
